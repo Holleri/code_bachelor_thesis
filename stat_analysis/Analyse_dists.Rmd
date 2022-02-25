@@ -1,0 +1,163 @@
+---
+title: "Analyse_dists"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+library(ggplot2)
+library(tidyverse)
+library(effsize)
+```
+
+# Compare all dists
+
+## Load tidy data
+```{r}
+all_data <- read_csv("../dists/tidy_dists_all.csv", col_types = "idfcf", col_names = T)
+
+summary(all_data)
+```
+## Introduce the condition (WT, mixed, random and between)
+
+```{r}
+all_data <-
+  all_data %>% 
+  mutate(
+    Category = factor(case_when(
+      Condition == "random" ~ "random",
+      startsWith(Condition, "between") ~ "between_DS",
+      startsWith(Condition, "WTs") ~ "WTs",
+      startsWith(Condition, "mixed") ~ "mixed"
+      ), ordered = T, levels = c("WTs", "mixed", "random", "between_DS"))
+  ) 
+
+
+all_data <- all_data %>% mutate(Condition = factor(Condition, ordered = T, levels = c("WTs_CIFAR", "WTs_CINIC", "WTs_SVHN", "mixed_CIFAR", "mixed_CINIC", "mixed_SVHN", "random", "between_CINIC_CIFAR", "between_SVHN_CIFAR", "between_SVHN_CINIC"))) %>% mutate(Method = factor(Method, ordered = T, levels = c("NNSTD", "SaSD")))
+```
+
+
+## Plot overall distances for each method
+```{r}
+all_data %>% group_by(ID) %>% summarize(dist_mean = mean(Distance), Category = first(Category), Condition = first(Condition), Method = first(Method)) %>%
+  ggplot(aes(x = Category, y = dist_mean, color = Condition)) +
+  geom_boxplot() +
+  theme_bw() +
+  facet_wrap(~ Method, scales='free') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("WTs", "mixed", "rand", "betw_DS")) +
+  labs(title = "Distribution of Distances for each Condition",
+       y = "Distance (mean over all Layers)")
+```
+
+## Plot all layers seperately for NNSTD
+```{r}
+all_data  %>% filter(Method == "NNSTD") %>% 
+  ggplot(aes(x = Category, y = Distance, color = Condition)) +
+  geom_boxplot() +
+  theme_bw() +
+  facet_wrap(~ Layer, scales='free', ncol = 2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("WTs", "mixed", "rand", "betw_DS")) +
+  labs(title = "Distribution NNSTD-Distances for all Layers")
+```
+
+## Plot all layers seperately for SaSD
+```{r}
+all_data  %>% filter(Method == "SaSD") %>%
+  ggplot(aes(x = Category, y = Distance, color = Condition)) +
+  geom_boxplot() +
+  theme_bw() +
+  facet_wrap(~ Layer, scales='free', ncol = 2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("WTs", "mixed", "rand", "betw_DS")) +
+  labs(title = "Distribution SaSD-Distances for all Layers")
+```
+
+## Plot overview over distances per layer NNSTD
+```{r}
+all_data %>% filter(Method == "NNSTD") %>%
+  ggplot(aes(x = Layer, y = Distance, color = Condition)) +
+  geom_boxplot() +
+  labs(title = "Distribution NNSTD-distances over all layers") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme_bw()
+```
+
+## Plot overview over distances per layer SaSD
+```{r}
+all_data %>% filter(Method == "SaSD") %>%
+  ggplot(aes(x = Layer, y = Distance, color = Condition)) +
+  geom_boxplot() +
+  labs(title = "Distribution SaSD-distances over all layers") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme_bw()
+```
+
+## Plot distances for conv1 layer SaSD
+```{r}
+all_data %>% filter(Method == "SaSD") %>% filter(Layer == "conv1") %>%
+  ggplot(aes(x = Category, y = Distance, color = Condition)) +
+  geom_boxplot() +
+  labs(title = "Distribution SaSD-distances, Conv1-Layer") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme_bw()
+
+```
+
+## Get statistical results for each layer and method, as well as the overall distance (mean over all layers)
+
+```{r}
+
+results = array(0, dim = c(9,4))
+
+i = 1
+
+##### change method and layer here to get results for each combination ############
+dists_to_compare <- all_data %>% filter(Method == "SaSD") %>% filter(Layer == "dense3")
+###################################################################################
+
+head(dists_to_compare)
+
+for (name in c("WTs_CIFAR", "WTs_CINIC", "WTs_SVHN", "mixed_CIFAR", "mixed_CINIC", "mixed_SVHN", "between_CINIC_CIFAR", "between_SVHN_CIFAR", "between_SVHN_CINIC")){
+  print(name)
+  print(mean((dists_to_compare %>% filter(Condition == name))$Distance) - mean((dists_to_compare %>% filter(Condition == "random"))$Distance))
+  print(t.test((dists_to_compare %>% filter(Condition == name))$Distance, (dists_to_compare %>% filter(Condition == "random"))$Distance))
+  print(cohen.d((dists_to_compare %>% filter(Condition == name))$Distance, (dists_to_compare %>% filter(Condition == "random"))$Distance))
+  results[i,1] = name
+  results[i,2] = round(mean((dists_to_compare %>% filter(Condition == name))$Distance) - mean((dists_to_compare %>% filter(Condition == "random"))$Distance),4)
+  results[i,3] = t.test((dists_to_compare %>% filter(Condition == name))$Distance, (dists_to_compare %>% filter(Condition == "random"))$Distance)$p.value
+  results[i,4] = round(cohen.d((dists_to_compare %>% filter(Condition == name))$Distance, (dists_to_compare %>% filter(Condition == "random"))$Distance)$estimate, 2)
+  i= i+1
+}
+```
+```{r}
+# add column names and write to csv file
+results <- data.frame(results)
+colnames(results) = c("Condition", "difference mean", "p value", "effect size")
+
+#write_csv(results, file = "tables/output_SaSD.csv")
+print(results)
+```
+
+
+
+
+## Plot number of weights left per filter (second part of thesis)
+
+```{r}
+data_weights_per_filter <- read_csv("temp_files/nr_weights_per_filter.csv", col_types = "dddd", col_names = c("random", "CIFAR-WTs", "CINIC-WTs", "SVHN-WTs"))
+
+data_weights_per_filter <- data_weights_per_filter %>% pivot_longer(everything(),names_to = "Type", values_to = "Nr") %>% mutate(Type = factor(Type, ordered = T, levels = c("random", "CIFAR-WTs", "CINIC-WTs", "SVHN-WTs")))
+```
+
+```{r}
+data_weights_per_filter  %>% 
+  ggplot(aes(x = Nr, fill = Type, color = Type)) +
+  theme_bw() +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~Type) +
+  labs(title = "Number of Weights per 3x3x3-filter",
+       x = "Number of Weights", y = "Count (filters)")
+```
+

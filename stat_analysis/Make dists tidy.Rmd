@@ -1,0 +1,309 @@
+---
+title: "Make dists tidy"
+output: html_document
+---
+
+```{r setup, include=FALSE, warnings = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+```
+
+# Load all relevant dists and join to clean and tidy data set
+
+## Read in data
+
+```{r}
+############### SaSD #################
+# load data CIFAR
+dists_WTs_CIFAR <- read_csv("../dists/dists_WTs_CIFAR.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+dists_mixed_CIFAR <- read_csv("../dists/dists_mixed_CIFAR.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+
+# load data CINIC
+dists_WTs_CINIC <- read_csv("../dists/dists_WTs_CINIC.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+dists_mixed_CINIC <- read_csv("../dists/dists_mixed_CINIC.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+
+# load data SVHN
+dists_WTs_SVHN <- read_csv("../dists/dists_WTs_SVHN.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+dists_mixed_SVHN <- read_csv("../dists/dists_mixed_SVHN.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+
+# load data random
+dists_random <- read_csv("../dists/dists_random.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+
+# load data of comparisons WTs between different datasets
+dists_WTs_SVHN_CIFAR <- read_csv("../dists/dists_between_SVHN_CIFAR.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+dists_WTs_CINIC_CIFAR <- read_csv("../dists/dists_between_CINIC_CIFAR.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+dists_WTs_SVHN_CINIC <- read_csv("../dists/dists_between_SVHN_CINIC.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+
+############## NNSTD #################
+# CIFAR 
+dists_WTs_CIFAR_NNSTD <- read_csv("../dists/dists_WTs_CIFAR_NNSTD.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+dists_mixed_CIFAR_NNSTD <- read_csv("../dists/dists_mixed_CIFAR_NNSTD.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+
+# CINIC
+dists_WTs_CINIC_NNSTD <- read_csv("../dists/dists_WTs_CINIC_NNSTD.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+dists_mixed_CINIC_NNSTD <- read_csv("../dists/dists_mixed_CINIC_NNSTD.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+
+# SVHN
+dists_WTs_SVHN_NNSTD <- read_csv("../dists/dists_WTs_SVHN_NNSTD.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+dists_mixed_SVHN_NNSTD <- read_csv("../dists/dists_mixed_SVHN_NNSTD.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+
+# random
+dists_random_NNSTD <- read_csv("../dists/dists_random_NNSTD.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+
+# between datasets
+dists_WTs_SVHN_CIFAR_NNSTD <- read_csv("../dists/dists_between_SVHN_CIFAR_NNSTD.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+dists_WTs_CINIC_CIFAR_NNSTD <- read_csv("../dists/dists_between_CINIC_CIFAR_NNSTD.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+dists_WTs_SVHN_CINIC_NNSTD <- read_csv("../dists/dists_between_SVHN_CINIC_NNSTD.csv", col_types = "ddddd", col_names = c("conv1", "conv2", "dense1", "dense2", "dense3"))
+```
+
+
+
+## Make tidy data for each dataset (CIFAR10, CINIC10 and SVHN numbers) and save as csv
+
+### CIFAR10
+```{r}
+# add type (WT, mixed, random) and method (SaSD or NNSTD)
+dists_CIFAR_SaSD <- 
+  full_join(
+    dists_WTs_CIFAR %>% mutate(Type = "WT"), 
+    dists_random %>% mutate(Type = "random")
+  ) %>% 
+  full_join(
+    dists_mixed_CIFAR %>% mutate(Type = "mixed")
+  )
+
+dists_CIFAR_NNSTD <- 
+  full_join(
+    dists_WTs_CIFAR_NNSTD %>% mutate(Type = "WT"), 
+    dists_random_NNSTD %>% mutate(Type = "random")
+  ) %>% 
+  full_join(
+    dists_mixed_CIFAR_NNSTD %>% mutate(Type = "mixed")
+  )
+
+dists_CIFAR <- 
+  full_join(
+    dists_CIFAR_SaSD %>% mutate(Method = "SaSD"),
+    dists_CIFAR_NNSTD %>% mutate(Method = "NNSTD")
+  )
+
+# pivot in long, tidy format
+dists_CIFAR <- dists_CIFAR %>%
+  mutate(ID = 1:nrow(dists_CIFAR)) %>%
+  pivot_longer(
+    names_to = "Layer", 
+    values_to = "Distance", 
+    cols = c(conv1, conv2, dense1, dense2, dense3)
+  ) %>%
+  select(ID, Distance, Layer, Type, Method)
+
+#dists_CIFAR %>% write_csv(file = "../dists/tidy_dists_CIFAR.csv")
+
+head(dists_CIFAR)
+```
+### CINIC10
+```{r}
+# add type (WT, mixed, random) and method (SaSD or NNSTD)
+dists_CINIC_SaSD <- 
+  full_join(
+    dists_WTs_CINIC %>% mutate(Type = "WT"), 
+    dists_random %>% mutate(Type = "random")
+  ) %>% 
+  full_join(
+    dists_mixed_CINIC %>% mutate(Type = "mixed")
+  )
+
+dists_CINIC_NNSTD <- 
+  full_join(
+    dists_WTs_CINIC_NNSTD %>% mutate(Type = "WT"), 
+    dists_random_NNSTD %>% mutate(Type = "random")
+  ) %>% 
+  full_join(
+    dists_mixed_CINIC_NNSTD %>% mutate(Type = "mixed")
+  )
+
+dists_CINIC <- 
+  full_join(
+    dists_CINIC_SaSD %>% mutate(Method = "SaSD"),
+    dists_CINIC_NNSTD %>% mutate(Method = "NNSTD")
+  )
+
+# pivot in long, tidy format
+dists_CINIC <- dists_CINIC %>%
+  mutate(ID = 1:nrow(dists_CINIC)) %>%
+  pivot_longer(
+    names_to = "Layer", 
+    values_to = "Distance", 
+    cols = c(conv1, conv2, dense1, dense2, dense3)
+  ) %>%
+  select(ID, Distance, Layer, Type, Method)
+
+#dists_CINIC %>% write_csv(file = "../dists/tidy_dists_CINIC.csv")
+
+head(dists_CINIC)
+```
+
+
+### SVHN numbers
+```{r}
+# add type (WT, mixed, random) and method (SaSD or NNSTD)
+dists_SVHN_SaSD <- 
+  full_join(
+    dists_WTs_SVHN %>% mutate(Type = "WT"), 
+    dists_random %>% mutate(Type = "random")
+  ) %>% 
+  full_join(
+    dists_mixed_SVHN %>% mutate(Type = "mixed")
+  )
+
+dists_SVHN_NNSTD <- 
+  full_join(
+    dists_WTs_SVHN_NNSTD %>% mutate(Type = "WT"), 
+    dists_random_NNSTD %>% mutate(Type = "random")
+  ) %>% 
+  full_join(
+    dists_mixed_SVHN_NNSTD %>% mutate(Type = "mixed")
+  )
+
+dists_SVHN <- 
+  full_join(
+    dists_SVHN_SaSD %>% mutate(Method = "SaSD"),
+    dists_SVHN_NNSTD %>% mutate(Method = "NNSTD")
+  )
+
+# pivot to long, tidy format
+dists_SVHN <- dists_SVHN %>%
+  mutate(ID = 1:nrow(dists_SVHN)) %>%
+  pivot_longer(
+    names_to = "Layer", 
+    values_to = "Distance", 
+    cols = c(conv1, conv2, dense1, dense2, dense3)
+  ) %>%
+  select(ID, Distance, Layer, Type, Method)
+
+#dists_SVHN %>% write_csv(file = "../dists/tidy_dists_SVHN.csv")
+
+head(dists_SVHN)
+```
+
+
+## Make whole data set with all 10 Conditions (random, WTs_ds (x3), WTs_mixed_ds (x3), WTs_ds1_ds2 (x3)) and both methods (SaSD and NNSTD)
+```{r}
+# set method and condition for all 3 data sets (CIFAR, CINIC and SVHN) and random
+dists_CIFAR_SaSD <- 
+  full_join(
+    dists_WTs_CIFAR %>% mutate(Condition = "WTs_CIFAR"), 
+    dists_mixed_CIFAR %>% mutate(Condition = "mixed_CIFAR")
+  )
+
+dists_CIFAR_NNSTD <- 
+  full_join(
+    dists_WTs_CIFAR_NNSTD %>% mutate(Condition = "WTs_CIFAR"), 
+    dists_mixed_CIFAR_NNSTD %>% mutate(Condition = "mixed_CIFAR")
+  )
+
+dists_CIFAR <- 
+  full_join(
+    dists_CIFAR_SaSD %>% mutate(Method = "SaSD"),
+    dists_CIFAR_NNSTD %>% mutate(Method = "NNSTD")
+  )
+
+
+# CINIC
+dists_CINIC_SaSD <- 
+  full_join(
+    dists_WTs_CINIC %>% mutate(Condition = "WTs_CINIC"), 
+    dists_mixed_CINIC %>% mutate(Condition = "mixed_CINIC")
+  )
+
+dists_CINIC_NNSTD <- 
+  full_join(
+    dists_WTs_CINIC_NNSTD %>% mutate(Condition = "WTs_CINIC"), 
+    dists_mixed_CINIC_NNSTD %>% mutate(Condition = "mixed_CINIC")
+  )
+
+dists_CINIC <- 
+  full_join(
+    dists_CINIC_SaSD %>% mutate(Method = "SaSD"),
+    dists_CINIC_NNSTD %>% mutate(Method = "NNSTD")
+  )
+
+
+#SVHN
+dists_SVHN_SaSD <- 
+  full_join(
+    dists_WTs_SVHN %>% mutate(Condition = "WTs_SVHN"), 
+    dists_mixed_SVHN %>% mutate(Condition = "mixed_SVHN")
+  )
+
+dists_SVHN_NNSTD <- 
+  full_join(
+    dists_WTs_SVHN_NNSTD %>% mutate(Condition = "WTs_SVHN"), 
+    dists_mixed_SVHN_NNSTD %>% mutate(Condition = "mixed_SVHN")
+  )
+
+dists_SVHN <- 
+  full_join(
+    dists_SVHN_SaSD %>% mutate(Method = "SaSD"),
+    dists_SVHN_NNSTD %>% mutate(Method = "NNSTD")
+  )
+
+
+# random
+dists_random <- 
+  full_join(
+    dists_random %>% mutate(Method = "SaSD") %>% mutate(Condition = "random"),
+    dists_random_NNSTD %>% mutate(Method = "NNSTD") %>% mutate(Condition = "random")
+  )
+
+
+# for all combinations of datasets
+dists_CINIC_CIFAR <- 
+  full_join(
+    dists_WTs_CINIC_CIFAR %>% mutate(Method = "SaSD", Condition = "between_CINIC_CIFAR"),
+    dists_WTs_CINIC_CIFAR_NNSTD %>% mutate(Method = "NNSTD", Condition = "between_CINIC_CIFAR")
+  )
+
+
+dists_SVHN_CIFAR <- 
+  full_join(
+    dists_WTs_SVHN_CIFAR %>% mutate(Method = "SaSD", Condition = "between_SVHN_CIFAR"),
+    dists_WTs_SVHN_CIFAR_NNSTD %>% mutate(Method = "NNSTD", Condition = "between_SVHN_CIFAR")
+  )
+
+
+dists_SVHN_CINIC <- 
+  full_join(
+    dists_WTs_SVHN_CINIC %>% mutate(Method = "SaSD", Condition = "between_SVHN_CINIC"),
+    dists_WTs_SVHN_CINIC_NNSTD %>% mutate(Method = "NNSTD", Condition = "between_SVHN_CINIC")
+  )
+
+
+dists_all <-
+  full_join(
+    dists_CIFAR,
+    dists_CINIC
+  ) %>%
+  full_join(dists_SVHN) %>%
+  full_join(dists_random) %>%
+  full_join(dists_CINIC_CIFAR) %>%
+  full_join(dists_SVHN_CIFAR) %>%
+  full_join(dists_SVHN_CINIC)
+
+
+# pivot in long, tidy format
+dists_all <- dists_all %>%
+  mutate(ID = 1:nrow(dists_all)) %>%
+  pivot_longer(
+    names_to = "Layer", 
+    values_to = "Distance", 
+    cols = c(conv1, conv2, dense1, dense2, dense3)
+  ) %>%
+  select(ID, Distance, Layer, Condition, Method)
+
+#dists_all %>% write_csv(file = "../dists/tidy_dists_all.csv")
+
+head(dists_all)
+```
+
+
